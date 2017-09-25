@@ -41,6 +41,7 @@ Thumbs.db
 **/Saved/*
 **/Binaries/*
 **/Build/*
+**/.vs/
 
 # Don't ignore icon files in build #
 !Build/**/*.ico

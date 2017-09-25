@@ -9,11 +9,11 @@ float UTanksStatics::FindDeltaAngleDegrees(float A1, float A2)
 
 	if (Delta > 180.0f)
 	{
-		Delta = Delta - 360.0f;
+		Delta = Delta - (360.0f);
 	}
 	else if (Delta < -180.0f)
 	{
-		Delta = Delta + 360.0f;
+		Delta = Delta + (360.0f);
 	}
 
 	return Delta;

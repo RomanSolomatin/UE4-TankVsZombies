@@ -20,9 +20,17 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tank Input")
 		FVector2D MovementInput;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tank Input")
+		uint32 bPrimaryFire : 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tank Input")
+		uint32 bSecondaryFire : 1;
+
 	void Sanitize();
 	void MoveX(float AxisValue);
 	void MoveY(float AxisValue);
+	void PrimaryFire(bool bPressed);
+	void SecondaryFire(bool bPressed);
 
 private:
 	// Private because its internal, raw data. Game code should never see this.
@@ -49,9 +57,16 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Tanks")
+		const FTankInput& GetCurrentInput() { return TankInput; }
+
 private:
 	void MoveX(float AxisValue);
 	void MoveY(float AxisValue);
+	void PrimaryFirePressed();
+	void PrimaryFireReleased();
+	void SecondaryFirePressed();
+	void SecondaryFireReleased();
 
 private:
 	// Helpful debug tool - which way is the tank facing
@@ -75,7 +90,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tank Input")
 		FTankInput TankInput;
 
-	// Maximum turn rate (degrees/second)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tank")
+	// Maximum turn rate (degrees/second) of the tank
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tank", meta = (ClampMin = "0.0"))
 		float YawSpeed;
+
+	// Maximum movement rate (units/second) of the tank
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tank", meta = (ClampMin = "0.0"))
+		float MoveSpeed;
 };

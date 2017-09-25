@@ -9,7 +9,7 @@
 void FTankInput::Sanitize()
 {
 	MovementInput = RawMovementInput.ClampAxes(-1.0f, 1.0f);
-	MovementInput = MovementInput.GetSafeNormal();
+	MovementInput.GetSafeNormal();
 	RawMovementInput.Set(0.0f, 0.0f);
 }
 
@@ -21,6 +21,16 @@ void FTankInput::MoveX(float AxisValue)
 void FTankInput::MoveY(float AxisValue)
 {
 	RawMovementInput.Y += AxisValue;
+}
+
+void FTankInput::PrimaryFire(bool bPressed)
+{
+	bPrimaryFire = bPressed;
+}
+
+void FTankInput::SecondaryFire(bool bPressed)
+{
+	bSecondaryFire = bPressed;
 }
 
 // Sets default values
@@ -39,12 +49,15 @@ ATank::ATank()
 	TankSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("TankSprite"));
 	TankSprite->SetupAttachment(TankDirection);
 
+	ChildTurret = CreateDefaultSubobject<UChildActorComponent>(TEXT("Turret"));
+	ChildTurret->SetupAttachment(TankDirection);
+
 	USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->TargetArmLength = 500.0f;
+	SpringArm->CameraLagSpeed = 2.0f;
 	SpringArm->bEnableCameraLag = true;
 	SpringArm->bEnableCameraRotationLag = false;
 	SpringArm->bUsePawnControlRotation = false;
-	SpringArm->CameraLagSpeed = 2.0f;
 	SpringArm->bDoCollisionTest = false;
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
@@ -53,12 +66,12 @@ ATank::ATank()
 	CameraComponent->bUsePawnControlRotation = false;
 	CameraComponent->ProjectionMode = ECameraProjectionMode::Orthographic;
 	CameraComponent->OrthoWidth = 1024.0f;
-	CameraComponent->AspectRatio = 3.0f / 4.0f;
+	CameraComponent->AspectRatio = 4.0f / 3.0f;
 	CameraComponent->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
-	CameraComponent->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
+	CameraComponent->SetWorldRotation(FRotator(-90.0f, -90.0f, 0.0f));
 
-	ChildTurret = CreateDefaultSubobject<UChildActorComponent>(TEXT("Turret"));
-	ChildTurret->SetupAttachment(TankDirection);
+	MoveSpeed = 100.0f;
+	YawSpeed = 180.0f;
 }
 
 // Called when the game starts or when spawned
@@ -100,9 +113,35 @@ void ATank::Tick(float DeltaTime)
 				}
 
 				// Turn toward the desired angle. Stop if we can get there in one frame
-				float MaxYawThisFrame = YawSpeed;
+				float MaxYawThisFrame = YawSpeed * DeltaTime;
+				if (MaxYawThisFrame >= FMath::Abs(AdjustedDeltaYaw))
+				{
+					if (bReverse)
+					{
+						// Move backward
+						FRotator FacingAngle = MovementAngle;
+						FacingAngle.Yaw = MovementAngle.Yaw + 180.0f;
+						TankDirection->SetWorldRotation(FacingAngle);
+					}
+					else
+					{
+						TankDirection->SetWorldRotation(MovementAngle);
+					}
+				}
+				else
+				{
+					// Cant reach our desired angle this fram, rotate part way.
+					TankDirection->AddLocalRotation(FRotator(0.0f, FMath::Sign(AdjustedDeltaYaw) * MaxYawThisFrame, 0.0f));
+				}
 			}
-
+			// Move the tank
+			{
+				FVector MovementDirection = TankDirection->GetForwardVector() * (bReverse ? -1.0f : 1.0f);
+				FVector Pos = GetActorLocation();
+				Pos.X += MovementDirection.X * MoveSpeed * DeltaTime;
+				Pos.Y += MovementDirection.Y * MoveSpeed * DeltaTime;
+				SetActorLocation(Pos);
+			}
 		}
 	}
 }
@@ -114,6 +153,10 @@ void ATank::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	InputComponent->BindAxis("MoveX", this, &ATank::MoveX);
 	InputComponent->BindAxis("MoveY", this, &ATank::MoveY);
+	InputComponent->BindAction("PrimaryFire", EInputEvent::IE_Pressed, this, &ATank::PrimaryFirePressed);
+	InputComponent->BindAction("PrimaryFire", EInputEvent::IE_Released, this, &ATank::PrimaryFireReleased);
+	InputComponent->BindAction("SecondaryFire", EInputEvent::IE_Pressed, this, &ATank::SecondaryFirePressed);
+	InputComponent->BindAction("SecondaryFire", EInputEvent::IE_Released, this, &ATank::SecondaryFireReleased);
 }
 
 void ATank::MoveX(float AxisValue)
@@ -124,5 +167,25 @@ void ATank::MoveX(float AxisValue)
 void ATank::MoveY(float AxisValue)
 {
 	TankInput.MoveY(AxisValue);
+}
+
+void ATank::PrimaryFirePressed()
+{
+	TankInput.PrimaryFire(true);
+}
+
+void ATank::PrimaryFireReleased()
+{
+	TankInput.PrimaryFire(false);
+}
+
+void ATank::SecondaryFirePressed()
+{
+	TankInput.SecondaryFire(true);
+}
+
+void ATank::SecondaryFireReleased()
+{
+	TankInput.SecondaryFire(false);
 }
 

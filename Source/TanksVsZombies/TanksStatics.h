@@ -20,7 +20,7 @@ public:
 		static float FindDeltaAngleDegrees(float A1, float A2);
 
 	/** Finds the angle between two 2d points */
-	UFUNCTION(BlueprintCallable, Category = "Math|Rotator", meta = (Keywords = "rotation rotate"))
+	UFUNCTION(BlueprintPure, Category = "Math|Rotator", meta = (Keywords = "rotation rotate"))
 		static bool FindLookAtAngle2D(const FVector2D& Start, const FVector2D& Target, float& Angle);
 	
 };
